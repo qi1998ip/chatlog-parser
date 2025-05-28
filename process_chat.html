@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天记录处理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://unpkg.com/vue@3"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            line-height: 1.6;
+            background-color: #f5f6fa;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #8e9aaf;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        h2 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #8e9aaf;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-input-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .file-input-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background-color: #e8eaf6;
+            color: #7986cb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .file-input-label:hover {
+            background-color: #c5cae9;
+            transform: translateY(-2px);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-list {
+            margin: 20px 0;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #e8eaf6;
+            height: 50vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .file-list-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid #e8eaf6;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .select-all-container {
+            padding: 12px;
+            border-bottom: 1px solid #e8eaf6;
+            background-color: #f5f6fa;
+        }
+
+        .select-all-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+            color: #7986cb;
+            font-weight: 500;
+            padding-left: 4px;
+        }
+
+        .select-all-label svg {
+            margin-top: 0;
+            width: 16px;
+            height: 16px;
+        }
+
+        .file-name svg {
+            width: 16px;
+            height: 16px;
+            margin-top: 0;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid #e8eaf6;
+            transition: all 0.2s ease;
+        }
+
+        .file-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            padding-left: 4px;
+        }
+
+        .file-checkbox input[type="checkbox"],
+        .select-all-label input[type="checkbox"] {
+            margin: 0;
+            width: 16px;
+            height: 16px;
+        }
+
+        .file-name {
+            flex-grow: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            color: #5c6bc0;
+            word-break: break-word;
+            text-align: left;
+            min-width: 0;
+        }
+
+        .file-name:hover {
+            color: #7986cb;
+        }
+
+        .file-item:hover {
+            background-color: #f5f6fa;
+        }
+
+        .empty-state {
+            padding: 40px 20px;
+            text-align: center;
+            color: #9fa8da;
+            font-style: italic;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background-color: #7986cb;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #5c6bc0;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background-color: #c5cae9;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 15px;
+            text-align: center;
+            color: #9fa8da;
+            font-size: 0.9em;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.2);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 16px;
+            width: 95%;
+            max-width: 800px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e8eaf6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #5c6bc0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #9fa8da;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s ease;
+        }
+
+        .close-button:hover {
+            color: #5c6bc0;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+            background-color: #f5f6fa;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            padding: 0 12px;
+        }
+
+        .message-wrapper {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            max-width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .message-left {
+            align-self: flex-start;
+            padding-right: 20%;
+        }
+
+        .message-right {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+            padding-left: 20%;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e8eaf6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #7986cb;
+        }
+
+        .message-bubble {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 0.95em;
+            line-height: 1.5;
+            word-break: break-word;
+            text-align: left;
+            min-width: 60px;
+            max-width: 100%;
+            display: inline-block;
+        }
+
+        .message-bubble p {
+            margin: 0;
+            padding: 0;
+        }
+
+        .message-bubble p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-bubble p + p {
+            margin-top: 0.5em;
+        }
+
+        .message-bubble hr {
+            margin: 1em 0;
+            border: none;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .message-right .message-bubble hr {
+            border-top-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .message-bubble pre {
+            margin: 1em 0;
+            background-color: rgba(0, 0, 0, 0.05);
+            padding: 8px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        .message-bubble code {
+            background-color: rgba(0, 0, 0, 0.05);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .message-bubble blockquote {
+            margin: 1em 0;
+            padding-left: 12px;
+            border-left: 4px solid rgba(0, 0, 0, 0.1);
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        .message-bubble ul, .message-bubble ol {
+            margin: 1em 0;
+            padding-left: 20px;
+        }
+
+        .message-bubble li {
+            margin: 0.5em 0;
+        }
+
+        .message-bubble li + li {
+            margin-top: 0.5em;
+        }
+
+        .message-left .message-bubble {
+            background-color: white;
+            color: #5c6bc0;
+            border: 1px solid #e8eaf6;
+            border-top-left-radius: 4px;
+        }
+
+        .message-right .message-bubble {
+            background-color: #7986cb;
+            color: white;
+            border-top-right-radius: 4px;
+        }
+
+        .message-right .message-bubble code,
+        .message-right .message-bubble pre {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .message-right .message-bubble blockquote {
+            border-left-color: rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        @media screen and (max-width: 768px) {
+            .modal-content {
+                width: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+
+            .message-left {
+                padding-right: 5%;
+            }
+
+            .message-right {
+                padding-left: 5%;
+            }
+
+            .avatar {
+                width: 36px;
+                height: 36px;
+            }
+
+            .message-bubble {
+                font-size: 0.9em;
+                padding: 10px 14px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .message-left {
+                padding-right: 2%;
+            }
+
+            .message-right {
+                padding-left: 2%;
+            }
+
+            .avatar {
+                width: 32px;
+                height: 32px;
+            }
+
+            .message-bubble {
+                font-size: 0.85em;
+                padding: 8px 12px;
+            }
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .modal-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: #c5cae9;
+            border-radius: 3px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb:hover {
+            background: #9fa8da;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <svg viewBox="0 0 24 24" width="24" height="24" style="vertical-align: middle; margin-right: 8px;">
+                <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+            </svg>
+            某种聊天记录
+        </h1>
+        <div class="file-input-container">
+            <label for="fileInput" class="file-input-label">
+                <svg viewBox="0 0 24 24" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                    <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                选择 JSON 文件
+            </label>
+            <input type="file" id="fileInput" accept=".json">
+        </div>
+        
+        <div class="file-list">
+            <h2>
+                <svg viewBox="0 0 24 24" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                    <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+                </svg>
+                聊天窗口列表
+            </h2>
+            <div class="file-list-content">
+                <div id="selectAllContainer" class="select-all-container" style="display: none;">
+                    <label class="select-all-label">
+                        <input type="checkbox" id="selectAll">
+                        <svg viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                        </svg>
+                        选择所有
+                    </label>
+                </div>
+                <ul id="fileList"></ul>
+                <div id="emptyState" class="empty-state">
+                    <svg viewBox="0 0 24 24" width="48" height="48" style="vertical-align: middle; margin-bottom: 16px;">
+                        <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                    </svg>
+                    请上传 conversation.json 文件 以查看聊天记录
+                </div>
+            </div>
+        </div>
+
+        <div class="button-container">
+            <button id="downloadButton" disabled>
+                <svg viewBox="0 0 24 24" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                    <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                </svg>
+                导出选中对话
+            </button>
+        </div>
+        <div id="status" class="status"></div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <svg viewBox="0 0 24 24" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                        <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+                    </svg>
+                    <span id="modalTitle"></span>
+                </h3>
+                <button class="close-button" id="closeModal">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="chatContainer" class="chat-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 配置 marked
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            headerIds: false,
+            mangle: false,
+            pedantic: false,
+            smartLists: true,
+            smartypants: false
+        });
+
+        // 状态变量
+        let lastOutputs = [];
+        let selectedFiles = [];
+        let currentFile = null;
+
+        // DOM 元素
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const emptyState = document.getElementById('emptyState');
+        const selectAllContainer = document.getElementById('selectAllContainer');
+        const selectAll = document.getElementById('selectAll');
+        const downloadButton = document.getElementById('downloadButton');
+        const status = document.getElementById('status');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modalTitle');
+        const chatContainer = document.getElementById('chatContainer');
+        const closeModal = document.getElementById('closeModal');
+
+        // 事件监听器
+        fileInput.addEventListener('change', handleFileChange);
+        selectAll.addEventListener('change', toggleSelectAll);
+        downloadButton.addEventListener('click', handleDownload);
+        closeModal.addEventListener('click', () => {
+            modal.classList.remove('show');
+            currentFile = null;
+        });
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+                currentFile = null;
+            }
+        });
+
+        function sanitizeFilename(filename) {
+            return filename.replace(/[\\/*?:"<>|]/g, "");
+        }
+
+        function extractDialogueFromMapping(mapping) {
+            const dialogues = [];
+            for (const randomKey in mapping) {
+                try {
+                    const msg = mapping[randomKey].message;
+                    const role = msg.author?.role || "unknown";
+                    if (!["user", "assistant"].includes(role)) continue;
+                    const content = msg.content || {};
+                    if (content.parts && content.parts.length) {
+                        const text = content.parts.join(" ").replace(/^"|"$/g, "").trim();
+                        if (text) {
+                            dialogues.push(`【${role}】 ${text}`);
+                        }
+                    } else if (role === "user") {
+                        const metadata = msg.metadata || {};
+                        const userData = metadata.user_context_message_data || {};
+                        const aboutModel = (userData.about_model_message || "").trim();
+                        const aboutUser = (userData.about_user_message || "").trim();
+                        let added = false;
+                        if (aboutModel) {
+                            dialogues.push(`【model_message】 ${aboutModel}`);
+                            added = true;
+                        }
+                        if (aboutUser) {
+                            dialogues.push(`【user_message】 ${aboutUser}`);
+                            added = true;
+                        }
+                        if (added) {
+                            dialogues.push("-".repeat(80));
+                        }
+                    }
+                } catch (e) {
+                    console.log(`处理 mapping 内随机键 ${randomKey} 时出错：${e}`);
+                }
+            }
+            return dialogues;
+        }
+
+        function processRawJson(data) {
+            const outputs = [];
+            if (typeof data === "object" && !Array.isArray(data)) {
+                for (const title in data) {
+                    const content = data[title];
+                    const mapping = content.mapping;
+                    if (!mapping) continue;
+                    const dialogues = extractDialogueFromMapping(mapping);
+                    if (dialogues.length) {
+                        const fn = sanitizeFilename(title) || "unknown";
+                        const txt = dialogues.join("\n");
+                        outputs.push({ filename: fn + ".txt", content: txt });
+                    }
+                }
+            } else if (Array.isArray(data)) {
+                const counter = {};
+                for (const item of data) {
+                    const title = item.title || "unknown";
+                    const mapping = item.mapping;
+                    if (!mapping) continue;
+                    const dialogues = extractDialogueFromMapping(mapping);
+                    if (!dialogues.length) continue;
+                    const base = sanitizeFilename(title) || "unknown";
+                    const count = (counter[base] || 0) + 1;
+                    counter[base] = count;
+                    const fn = count > 1 ? `${base}_${count}.txt` : `${base}.txt`;
+                    outputs.push({ filename: fn, content: dialogues.join("\n") });
+                }
+            } else {
+                throw new Error("不支持的 JSON 格式");
+            }
+            return outputs;
+        }
+
+        function handleFileChange(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            status.textContent = "正在解析文件...";
+            const reader = new FileReader();
+            
+            reader.onload = function (e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    const outputs = processRawJson(data);
+                    lastOutputs = outputs;
+                    selectedFiles = outputs.map(() => false);
+                    
+                    if (outputs.length === 0) {
+                        status.textContent = "解析完成，但未找到对话内容";
+                        return;
+                    }
+                    
+                    updateFileList();
+                    status.textContent = `解析完成，找到 ${outputs.length} 个会话`;
+                } catch (err) {
+                    status.textContent = "解析失败";
+                }
+            };
+            
+            reader.readAsText(file, "utf-8");
+        }
+
+        function updateFileList() {
+            fileList.innerHTML = '';
+            emptyState.style.display = lastOutputs.length > 0 ? 'none' : 'flex';
+            selectAllContainer.style.display = lastOutputs.length > 0 ? 'block' : 'none';
+            
+            lastOutputs.forEach((output, index) => {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                
+                const checkbox = document.createElement('label');
+                checkbox.className = 'file-checkbox';
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.checked = selectedFiles[index];
+                input.addEventListener('change', () => {
+                    selectedFiles[index] = input.checked;
+                    updateDownloadButton();
+                });
+                checkbox.appendChild(input);
+                
+                const span = document.createElement('span');
+                span.className = 'file-name';
+                span.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" style="vertical-align: middle; margin-right: 8px;">
+                    <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+                </svg> ${output.filename}`;
+                span.addEventListener('click', () => showFileContent(output));
+                
+                li.appendChild(checkbox);
+                li.appendChild(span);
+                fileList.appendChild(li);
+            });
+            
+            updateDownloadButton();
+        }
+
+        function toggleSelectAll(event) {
+            const checked = event.target.checked;
+            selectedFiles = lastOutputs.map(() => checked);
+            updateFileList();
+        }
+
+        function updateDownloadButton() {
+            downloadButton.disabled = !selectedFiles.some(selected => selected);
+        }
+
+        function showFileContent(file) {
+            currentFile = file;
+            modalTitle.textContent = file.filename;
+            chatContainer.innerHTML = '';
+            
+            const lines = file.content.split('\n');
+            const rolePattern = /【(model_message|user_message|assistant|user)】/;
+            let currentMessage = '';
+            let currentRole = '';
+            
+            for (const line of lines) {
+                const match = line.match(rolePattern);
+                if (match) {
+                    if (currentMessage) {
+                        addMessageToChat(currentRole, currentMessage);
+                    }
+                    currentRole = match[1];
+                    currentMessage = line.replace(rolePattern, '').trim();
+                } else if (currentRole) {
+                    currentMessage += '\n' + line;
+                }
+            }
+            
+            if (currentMessage) {
+                addMessageToChat(currentRole, currentMessage);
+            }
+            
+            modal.classList.add('show');
+        }
+
+        function addMessageToChat(role, content) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `message-wrapper ${role === 'assistant' || role === 'model_message' ? 'message-left' : 'message-right'}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            
+            // 只在 user_message 类型的消息中移除分割线
+            const cleanContent = role === 'user_message' 
+                ? content.replace(/-{20,}/g, '')
+                : content;
+            
+            // 移除末尾的换行符
+            const trimmedContent = cleanContent.replace(/\n+$/, '');
+            
+            // 使用 marked.parse 处理 Markdown
+            bubble.innerHTML = marked.parse(trimmedContent);
+            
+            wrapper.appendChild(bubble);
+            chatContainer.appendChild(wrapper);
+        }
+
+        async function handleDownload() {
+            if (!selectedFiles.some(selected => selected)) return;
+            
+            try {
+                status.textContent = "正在准备导出...";
+                
+                const selectedOutputs = lastOutputs.filter((_, index) => selectedFiles[index]);
+                
+                if (selectedOutputs.length === 1) {
+                    // 单文件直接下载
+                    const blob = new Blob([selectedOutputs[0].content], { type: "text/plain" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = selectedOutputs[0].filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    status.textContent = "导出完成";
+                } else {
+                    // 多文件打包为 zip
+                    status.textContent = "正在打包文件，请稍候...";
+                    const zip = new JSZip();
+                    
+                    // 添加所有选中的文件到zip
+                    selectedOutputs.forEach(output => {
+                        zip.file(output.filename, output.content);
+                    });
+                    
+                    // 生成zip文件
+                    const content = await zip.generateAsync({type: "blob"});
+                    const url = URL.createObjectURL(content);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "chatgpt_dialogues.zip";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    status.textContent = `已导出 ${selectedOutputs.length} 个文件到 chatgpt_dialogues.zip`;
+                }
+            } catch (err) {
+                status.textContent = "导出失败";
+            }
+        }
+    </script>
+</body>
+</html> 
