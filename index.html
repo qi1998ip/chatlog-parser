@@ -654,6 +654,56 @@
 
         function processRawJson(data) {
             const outputs = [];
+            
+            // 检查是否为数组格式
+            if (Array.isArray(data)) {
+                const counter = {};
+                for (const item of data) {
+                    // 检查是否为Claude格式
+                    if (item.name !== undefined && item.chat_messages !== undefined) {
+                        const name = item.name || "Undefined";
+                        const chatMessages = item.chat_messages || [];
+                        
+                        if (!chatMessages.length) {
+                            continue;
+                        }
+                        
+                        const dialogues = [];
+                        for (const msg of chatMessages) {
+                            const sender = msg.sender;
+                            const text = msg.text;
+                            if (sender && text) {
+                                const role = sender === "human" ? "user" : "assistant";
+                                dialogues.push(`【${role}】 ${text}`);
+                            }
+                        }
+                        
+                        if (dialogues.length) {
+                            const base = sanitizeFilename(name);
+                            const count = (counter[base] || 0) + 1;
+                            counter[base] = count;
+                            const fn = count > 1 ? `${base}_${count}.txt` : `${base}.txt`;
+                            outputs.push({ filename: fn, content: dialogues.join("\n") });
+                        }
+                    }
+                    // 检查是否为ChatGPT格式
+                    else if (item.title !== undefined && item.mapping !== undefined) {
+                        const title = item.title || "unknown";
+                        const mapping = item.mapping;
+                        if (!mapping) continue;
+                        const dialogues = extractDialogueFromMapping(mapping);
+                        if (!dialogues.length) continue;
+                        const base = sanitizeFilename(title) || "unknown";
+                        const count = (counter[base] || 0) + 1;
+                        counter[base] = count;
+                        const fn = count > 1 ? `${base}_${count}.txt` : `${base}.txt`;
+                        outputs.push({ filename: fn, content: dialogues.join("\n") });
+                    }
+                }
+                return outputs;
+            }
+            
+            // ChatGPT对象格式处理
             if (typeof data === "object" && !Array.isArray(data)) {
                 for (const title in data) {
                     const content = data[title];
@@ -665,20 +715,6 @@
                         const txt = dialogues.join("\n");
                         outputs.push({ filename: fn + ".txt", content: txt });
                     }
-                }
-            } else if (Array.isArray(data)) {
-                const counter = {};
-                for (const item of data) {
-                    const title = item.title || "unknown";
-                    const mapping = item.mapping;
-                    if (!mapping) continue;
-                    const dialogues = extractDialogueFromMapping(mapping);
-                    if (!dialogues.length) continue;
-                    const base = sanitizeFilename(title) || "unknown";
-                    const count = (counter[base] || 0) + 1;
-                    counter[base] = count;
-                    const fn = count > 1 ? `${base}_${count}.txt` : `${base}.txt`;
-                    outputs.push({ filename: fn, content: dialogues.join("\n") });
                 }
             } else {
                 throw new Error("不支持的 JSON 格式");
