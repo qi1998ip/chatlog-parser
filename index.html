@@ -94,6 +94,32 @@
             flex-direction: column;
         }
 
+        .search-container {
+            margin-bottom: 15px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #e8eaf6;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #5c6bc0;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #7986cb;
+            box-shadow: 0 2px 12px rgba(121, 134, 203, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: #9fa8da;
+        }
+
         .file-list-content {
             flex-grow: 1;
             overflow-y: auto;
@@ -513,6 +539,9 @@
                 </svg>
                 聊天窗口列表
             </h2>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="搜索聊天记录..." class="search-input">
+            </div>
             <div class="file-list-content">
                 <div id="selectAllContainer" class="select-all-container" style="display: none;">
                     <label class="select-all-label">
@@ -581,6 +610,7 @@
         let lastOutputs = [];
         let selectedFiles = [];
         let currentFile = null;
+        let filteredOutputs = [];
 
         // DOM 元素
         const fileInput = document.getElementById('fileInput');
@@ -594,6 +624,7 @@
         const modalTitle = document.getElementById('modalTitle');
         const chatContainer = document.getElementById('chatContainer');
         const closeModal = document.getElementById('closeModal');
+        const searchInput = document.getElementById('searchInput');
 
         // 事件监听器
         fileInput.addEventListener('change', handleFileChange);
@@ -602,13 +633,22 @@
         closeModal.addEventListener('click', () => {
             modal.classList.remove('show');
             currentFile = null;
+            const modalBody = modal.querySelector('.modal-body');
+            if (modalBody) {
+                modalBody.scrollTop = 0;
+            }
         });
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.classList.remove('show');
                 currentFile = null;
+                const modalBody = modal.querySelector('.modal-body');
+                if (modalBody) {
+                    modalBody.scrollTop = 0;
+                }
             }
         });
+        searchInput.addEventListener('input', handleSearch);
 
         function sanitizeFilename(filename) {
             return filename.replace(/[\\/*?:"<>|]/g, "");
@@ -722,6 +762,26 @@
             return outputs;
         }
 
+        function handleSearch() {
+            const query = searchInput.value.toLowerCase().trim();
+            if (!query) {
+                filteredOutputs = [...lastOutputs];
+            } else {
+                filteredOutputs = lastOutputs.filter(output => {
+                    // 搜索文件名
+                    if (output.filename.toLowerCase().includes(query)) {
+                        return true;
+                    }
+                    // 搜索内容
+                    if (output.content.toLowerCase().includes(query)) {
+                        return true;
+                    }
+                    return false;
+                });
+            }
+            updateFileList();
+        }
+
         function handleFileChange(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -734,6 +794,7 @@
                     const data = JSON.parse(e.target.result);
                     const outputs = processRawJson(data);
                     lastOutputs = outputs;
+                    filteredOutputs = outputs;
                     selectedFiles = outputs.map(() => false);
                     
                     if (outputs.length === 0) {
@@ -753,10 +814,11 @@
 
         function updateFileList() {
             fileList.innerHTML = '';
-            emptyState.style.display = lastOutputs.length > 0 ? 'none' : 'flex';
-            selectAllContainer.style.display = lastOutputs.length > 0 ? 'block' : 'none';
+            emptyState.style.display = filteredOutputs.length > 0 ? 'none' : 'flex';
+            selectAllContainer.style.display = filteredOutputs.length > 0 ? 'block' : 'none';
             
-            lastOutputs.forEach((output, index) => {
+            filteredOutputs.forEach((output, index) => {
+                const originalIndex = lastOutputs.indexOf(output);
                 const li = document.createElement('li');
                 li.className = 'file-item';
                 
@@ -764,9 +826,9 @@
                 checkbox.className = 'file-checkbox';
                 const input = document.createElement('input');
                 input.type = 'checkbox';
-                input.checked = selectedFiles[index];
+                input.checked = selectedFiles[originalIndex];
                 input.addEventListener('change', () => {
-                    selectedFiles[index] = input.checked;
+                    selectedFiles[originalIndex] = input.checked;
                     updateDownloadButton();
                 });
                 checkbox.appendChild(input);
@@ -824,6 +886,11 @@
             }
             
             modal.classList.add('show');
+            // 重置滚动位置
+            const modalBody = modal.querySelector('.modal-body');
+            if (modalBody) {
+                modalBody.scrollTop = 0;
+            }
         }
 
         function addMessageToChat(role, content) {
