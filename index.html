@@ -283,8 +283,16 @@
             padding: 20px;
             border-bottom: 1px solid #e8eaf6;
             display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .header-top {
+            display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 12px;
+            width: 100%;
         }
 
         .modal-header h3 {
@@ -293,6 +301,34 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            word-break: break-all;
+            font-size: 1.1em;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .statistics-note {
+            display: flex;
+            align-items: center;
+            color: #9fa8da;
+            cursor: help;
+            width: 32px;
+            height: 32px;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .statistics-note:hover {
+            color: #5c6bc0;
+            background-color: #f5f6fa;
         }
 
         .close-button {
@@ -304,11 +340,49 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: color 0.2s ease;
+            transition: all 0.2s ease;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
         }
 
         .close-button:hover {
             color: #5c6bc0;
+            background-color: #f5f6fa;
+        }
+
+        .statistics {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.9em;
+            color: #666;
+            width: 100%;
+        }
+
+        .statistics-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .stat-label {
+            color: #9fa8da;
+        }
+
+        .stat-value {
+            color: #5c6bc0;
+            font-weight: 500;
         }
 
         .modal-body {
@@ -474,6 +548,29 @@
                 font-size: 0.9em;
                 padding: 10px 14px;
             }
+
+            .header-actions {
+                gap: 4px;
+            }
+
+            .statistics-note,
+            .close-button {
+                width: 28px;
+                height: 28px;
+            }
+
+            .statistics {
+                font-size: 0.85em;
+                gap: 8px;
+            }
+
+            .statistics-content {
+                gap: 8px;
+            }
+
+            .stat-item {
+                gap: 2px;
+            }
         }
 
         @media screen and (max-width: 480px) {
@@ -493,6 +590,21 @@
             .message-bubble {
                 font-size: 0.85em;
                 padding: 8px 12px;
+            }
+
+            .statistics-note,
+            .close-button {
+                width: 24px;
+                height: 24px;
+            }
+
+            .statistics {
+                font-size: 0.8em;
+            }
+
+            .statistics-content {
+                flex-direction: column;
+                gap: 4px;
             }
         }
 
@@ -576,17 +688,42 @@
     <div id="modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>
-                    <svg viewBox="0 0 24 24" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
-                        <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
-                    </svg>
-                    <span id="modalTitle"></span>
-                </h3>
-                <button class="close-button" id="closeModal">
-                    <svg viewBox="0 0 24 24" width="20" height="20">
-                        <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                    </svg>
-                </button>
+                <div class="header-top">
+                    <h3>
+                        <svg viewBox="0 0 24 24" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                            <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+                        </svg>
+                        <span id="modalTitle"></span>
+                    </h3>
+                    <div class="header-actions">
+                        <div class="statistics-note" title="这里的字数统计仅供参考，实际token消耗量可能因模型分词方式而有所不同">
+                            <svg viewBox="0 0 24 24" width="20" height="20" style="vertical-align: middle;">
+                                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                            </svg>
+                        </div>
+                        <button class="close-button" id="closeModal">
+                            <svg viewBox="0 0 24 24" width="20" height="20">
+                                <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="statistics">
+                    <div class="statistics-content">
+                        <div class="stat-item">
+                            <span class="stat-label">总字符：</span>
+                            <span class="stat-value" id="totalChars">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">AI回复：</span>
+                            <span class="stat-value" id="assistantCount">0次</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">用户消息：</span>
+                            <span class="stat-value" id="userCount">0次</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-body">
                 <div id="chatContainer" class="chat-container"></div>
@@ -858,10 +995,59 @@
             downloadButton.disabled = !selectedFiles.some(selected => selected);
         }
 
+        function calculateStatistics(content) {
+            const lines = content.split('\n');
+            let totalChars = 0;
+            let assistantCount = 0;
+            let userCount = 0;
+            let currentContent = '';
+            let currentRole = '';
+
+            for (const line of lines) {
+                if (line.startsWith('【assistant】') || line.startsWith('【model_message】')) {
+                    if (currentContent && currentRole) {
+                        totalChars += currentContent.length;
+                        if (currentRole === 'assistant') assistantCount++;
+                        else userCount++;
+                    }
+                    currentRole = 'assistant';
+                    currentContent = line.replace(/^【.*?】\s*/, '').trim();
+                } else if (line.startsWith('【user】') || line.startsWith('【user_message】')) {
+                    if (currentContent && currentRole) {
+                        totalChars += currentContent.length;
+                        if (currentRole === 'assistant') assistantCount++;
+                        else userCount++;
+                    }
+                    currentRole = 'user';
+                    currentContent = line.replace(/^【.*?】\s*/, '').trim();
+                } else if (currentRole) {
+                    currentContent += '\n' + line;
+                }
+            }
+            
+            if (currentContent && currentRole) {
+                totalChars += currentContent.length;
+                if (currentRole === 'assistant') assistantCount++;
+                else userCount++;
+            }
+
+            return {
+                totalChars,
+                assistantCount,
+                userCount
+            };
+        }
+
         function showFileContent(file) {
             currentFile = file;
             modalTitle.textContent = file.filename;
             chatContainer.innerHTML = '';
+            
+            // 计算统计信息
+            const stats = calculateStatistics(file.content);
+            document.getElementById('totalChars').textContent = stats.totalChars;
+            document.getElementById('assistantCount').textContent = stats.assistantCount + '次';
+            document.getElementById('userCount').textContent = stats.userCount + '次';
             
             const lines = file.content.split('\n');
             const rolePattern = /【(model_message|user_message|assistant|user)】/;
@@ -886,7 +1072,6 @@
             }
             
             modal.classList.add('show');
-            // 重置滚动位置
             const modalBody = modal.querySelector('.modal-body');
             if (modalBody) {
                 modalBody.scrollTop = 0;
